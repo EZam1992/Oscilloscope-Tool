@@ -3,6 +3,12 @@ from osci_tool.transport.scpi_lan import ScpiLanTransport
 _WELCOME_PREFIX = "Welcome to the SCPI instrument"
 _PROMPT_PREFIX = ">>"
 _VALID_COUPLING = frozenset({"A1M", "A50", "D1M", "D50", "GND"})
+_VALID_TIME_DIV = frozenset({
+    "1NS", "2NS", "5NS", "10NS", "20NS", "50NS", "100NS", "200NS", "500NS",
+    "1US", "2US", "5US", "10US", "20US", "50US", "100US", "200US", "500US",
+    "1MS", "2MS", "5MS", "10MS", "20MS", "50MS", "100MS", "200MS", "500MS",
+    "1S", "2S", "5S", "10S", "20S", "50S", "100S",
+})
 
 
 class SiglentSDS1000XE:
@@ -61,6 +67,18 @@ class SiglentSDS1000XE:
         self._validate_channel(channel)
         response = self._query(f"C{channel}:CPL?")
         return response.rsplit(" ", 1)[-1]
+
+    def set_horizontal_scale(self, value: str) -> None:
+        if value not in _VALID_TIME_DIV:
+            raise ValueError(
+                f"value must be one of {sorted(_VALID_TIME_DIV)}, got {value!r}"
+            )
+        self._write(f"TDIV {value}")
+
+    def get_horizontal_scale(self) -> float:
+        response = self._query("TDIV?")
+        value_str = response.rsplit(" ", 1)[-1]
+        return float(value_str.rstrip("S"))
 
     @staticmethod
     def _validate_channel(channel: int) -> None:
