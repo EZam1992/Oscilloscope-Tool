@@ -3,6 +3,7 @@ from osci_tool.transport.scpi_lan import ScpiLanTransport
 _WELCOME_PREFIX = "Welcome to the SCPI instrument"
 _PROMPT_PREFIX = ">>"
 _VALID_COUPLING = frozenset({"A1M", "A50", "D1M", "D50", "GND"})
+_VALID_TRIGGER_MODE = frozenset({"AUTO", "NORM", "SINGLE", "STOP"})
 _VALID_TIME_DIV = frozenset({
     "1NS", "2NS", "5NS", "10NS", "20NS", "50NS", "100NS", "200NS", "500NS",
     "1US", "2US", "5US", "10US", "20US", "50US", "100US", "200US", "500US",
@@ -66,6 +67,41 @@ class SiglentSDS1000XE:
     def get_coupling(self, channel: int) -> str:
         self._validate_channel(channel)
         response = self._query(f"C{channel}:CPL?")
+        return response.rsplit(" ", 1)[-1]
+
+    def set_trigger_level(self, channel: int, level_volts: float) -> None:
+        self._validate_channel(channel)
+        self._write(f"C{channel}:TRLV {level_volts}")
+
+    def get_trigger_level(self, channel: int) -> float:
+        self._validate_channel(channel)
+        response = self._query(f"C{channel}:TRLV?")
+        value_str = response.rsplit(" ", 1)[-1]
+        return float(value_str.rstrip("V"))
+
+    def set_trigger_source(self, channel: int) -> None:
+        self._validate_channel(channel)
+        if not self.is_channel_enabled(channel):
+            raise RuntimeError(
+                f"channel {channel} must be enabled before it can be set as the trigger source"
+            )
+        self._write(f"TRSE EDGE,SR,C{channel},HT,OFF")
+
+    def get_trigger_source(self) -> int:
+        response = self._query("TRSE?")
+        parts = response.split(",")
+        source = parts[parts.index("SR") + 1]
+        return int(source.lstrip("C"))
+
+    def set_trigger_mode(self, mode: str) -> None:
+        if mode not in _VALID_TRIGGER_MODE:
+            raise ValueError(
+                f"mode must be one of {sorted(_VALID_TRIGGER_MODE)}, got {mode!r}"
+            )
+        self._write(f"TRMD {mode}")
+
+    def get_trigger_mode(self) -> str:
+        response = self._query("TRMD?")
         return response.rsplit(" ", 1)[-1]
 
     def set_horizontal_scale(self, value: str) -> None:
