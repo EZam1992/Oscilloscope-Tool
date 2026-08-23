@@ -17,6 +17,22 @@ class SiglentSDS1000XE:
     def identify(self) -> str:
         return self._query("*IDN?")
 
+    def set_channel(self, channel: int, enabled: bool) -> None:
+        self._validate_channel(channel)
+        mode = "ON" if enabled else "OFF"
+        self._transport.write(f"C{channel}:TRA {mode}")
+
+    def is_channel_enabled(self, channel: int) -> bool:
+        self._validate_channel(channel)
+        response = self._query(f"C{channel}:TRA?")
+        mode = response.rsplit(" ", 1)[-1]
+        return mode == "ON"
+
+    @staticmethod
+    def _validate_channel(channel: int) -> None:
+        if channel not in (1, 2, 3, 4):
+            raise ValueError(f"channel must be 1-4, got {channel}")
+
     def _query(self, command: str) -> str:
         raw = self._transport.query(command)
         return self._strip_framing(raw)

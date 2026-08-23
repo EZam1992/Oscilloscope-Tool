@@ -18,6 +18,9 @@ class ScpiLanTransport:
             self._sock.close()
             self._sock = None
 
+    def write(self, command: str) -> None:
+        self._send(command)
+
     def query(self, command: str) -> str:
         self._send(command)
         return self._receive()
