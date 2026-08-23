@@ -25,6 +25,40 @@ class ScpiLanTransport:
         self._send(command)
         return self._receive()
 
+    def query_binary_block(self, command: str) -> bytes:
+        self._send(command)
+        return self._receive_binary_block()
+
+    def _receive_binary_block(self) -> bytes:
+        response = bytearray()
+        while True:
+            byte = self._recv_exact(1)
+            response.extend(byte)
+            if byte == b"#":
+                break
+        digit_count_byte = self._recv_exact(1)
+        response.extend(digit_count_byte)
+        digit_count = int(digit_count_byte)
+        length_bytes = self._recv_exact(digit_count)
+        response.extend(length_bytes)
+        length = int(length_bytes)
+        payload = self._recv_exact(length)
+        response.extend(payload)
+        terminator = self._recv_exact(2)
+        response.extend(terminator)
+        return bytes(response)
+
+    def _recv_exact(self, count: int) -> bytes:
+        if self._sock is None:
+            raise RuntimeError("Not connected")
+        data = bytearray()
+        while len(data) < count:
+            chunk = self._sock.recv(count - len(data))
+            if not chunk:
+                raise ConnectionError("Socket closed by remote host")
+            data.extend(chunk)
+        return bytes(data)
+
     def _send(self, command: str) -> None:
         if self._sock is None:
             raise RuntimeError("Not connected")

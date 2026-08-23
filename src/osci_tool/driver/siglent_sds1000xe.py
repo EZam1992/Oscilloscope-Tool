@@ -69,6 +69,38 @@ class SiglentSDS1000XE:
         response = self._query(f"C{channel}:CPL?")
         return response.rsplit(" ", 1)[-1]
 
+    def get_sample_rate(self) -> float:
+        response = self._query("SARA?")
+        value_str = response.rsplit(" ", 1)[-1]
+        return float(value_str.removesuffix("Sa/s"))
+
+    def get_waveform(self, channel: int) -> list[tuple[float, float]]:
+        raw = self.get_waveform_raw(channel)
+        vdiv = self.get_vertical_scale(channel)
+        offset = self.get_offset(channel)
+        tdiv = self.get_horizontal_scale()
+        sample_interval = 1 / self.get_sample_rate()
+        start_time = -(tdiv * 14 / 2)
+        points = []
+        for idx, byte_value in enumerate(raw):
+            code = byte_value - 256 if byte_value > 127 else byte_value
+            voltage = code * (vdiv / 25) - offset
+            time_value = start_time + idx * sample_interval
+            points.append((time_value, voltage))
+        return points
+
+    def get_waveform_raw(self, channel: int) -> bytes:
+        self._validate_channel(channel)
+        raw = self._transport.query_binary_block(f"C{channel}:WF? DAT2")
+        hash_index = raw.index(b"#")
+        digit_count = int(raw[hash_index + 1 : hash_index + 2])
+        length_start = hash_index + 2
+        length_end = length_start + digit_count
+        length = int(raw[length_start:length_end])
+        payload_start = length_end
+        payload_end = payload_start + length
+        return raw[payload_start:payload_end]
+
     def set_trigger_level(self, channel: int, level_volts: float) -> None:
         self._validate_channel(channel)
         self._write(f"C{channel}:TRLV {level_volts}")
