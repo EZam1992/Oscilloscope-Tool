@@ -2,6 +2,7 @@ from osci_tool.transport.scpi_lan import ScpiLanTransport
 
 _WELCOME_PREFIX = "Welcome to the SCPI instrument"
 _PROMPT_PREFIX = ">>"
+_VALID_COUPLING = frozenset({"A1M", "A50", "D1M", "D50", "GND"})
 
 
 class SiglentSDS1000XE:
@@ -20,7 +21,7 @@ class SiglentSDS1000XE:
     def set_channel(self, channel: int, enabled: bool) -> None:
         self._validate_channel(channel)
         mode = "ON" if enabled else "OFF"
-        self._transport.write(f"C{channel}:TRA {mode}")
+        self._write(f"C{channel}:TRA {mode}")
 
     def is_channel_enabled(self, channel: int) -> bool:
         self._validate_channel(channel)
@@ -28,10 +29,47 @@ class SiglentSDS1000XE:
         mode = response.rsplit(" ", 1)[-1]
         return mode == "ON"
 
+    def set_vertical_scale(self, channel: int, volts_per_div: float) -> None:
+        self._validate_channel(channel)
+        self._write(f"C{channel}:VDIV {volts_per_div}")
+
+    def get_vertical_scale(self, channel: int) -> float:
+        self._validate_channel(channel)
+        response = self._query(f"C{channel}:VDIV?")
+        value_str = response.rsplit(" ", 1)[-1]
+        return float(value_str.rstrip("V"))
+
+    def set_offset(self, channel: int, offset_volts: float) -> None:
+        self._validate_channel(channel)
+        self._write(f"C{channel}:OFST {offset_volts}")
+
+    def get_offset(self, channel: int) -> float:
+        self._validate_channel(channel)
+        response = self._query(f"C{channel}:OFST?")
+        value_str = response.rsplit(" ", 1)[-1]
+        return float(value_str.rstrip("V"))
+
+    def set_coupling(self, channel: int, coupling: str) -> None:
+        self._validate_channel(channel)
+        if coupling not in _VALID_COUPLING:
+            raise ValueError(
+                f"coupling must be one of {sorted(_VALID_COUPLING)}, got {coupling!r}"
+            )
+        self._write(f"C{channel}:CPL {coupling}")
+
+    def get_coupling(self, channel: int) -> str:
+        self._validate_channel(channel)
+        response = self._query(f"C{channel}:CPL?")
+        return response.rsplit(" ", 1)[-1]
+
     @staticmethod
     def _validate_channel(channel: int) -> None:
         if channel not in (1, 2, 3, 4):
             raise ValueError(f"channel must be 1-4, got {channel}")
+
+    def _write(self, command: str) -> None:
+        self._transport.write(command)
+        self._query("*OPC?")
 
     def _query(self, command: str) -> str:
         raw = self._transport.query(command)
