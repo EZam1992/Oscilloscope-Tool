@@ -136,6 +136,10 @@ class SiglentSDS1000XE:
         response = self._query("TRMD?")
         return response.rsplit(" ", 1)[-1]
 
+    def get_trigger_status(self) -> str:
+        response = self._query("SAST?")
+        return response.rsplit(" ", 1)[-1]
+
     def set_horizontal_scale(self, value: str) -> None:
         if value not in _VALID_TIME_DIV:
             raise ValueError(
