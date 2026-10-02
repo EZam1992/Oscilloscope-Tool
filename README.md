@@ -44,7 +44,7 @@ graph TD
 - [x] Repo scaffolded (`src/` layout, six modules matching the architecture above)
 - [x] SCPI/LAN Transport — implemented, verified live against the scope (`*IDN?` round trip working)
 - [x] Scope Driver — `identify()`, channel enable/scale/offset/coupling, trigger (level/mode/edge source), timebase, waveform pull, all verified live
-- [ ] Test Sequencer
+- [x] Test Sequencer — channel-config round-trip, waveform-amplitude-range, and trigger-fires-within-timeout step types, verified live
 - [x] Data Logger — `save_waveform()` writes captures to gitignored `data/` (CSV/HDF5 export and run history still open)
 - [ ] App Controller
 - [ ] GUI Layer
