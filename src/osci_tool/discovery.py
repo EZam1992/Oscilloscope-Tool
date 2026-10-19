@@ -1,9 +1,9 @@
 """Find the scope's IP on the LAN without hardcoding it.
 
-The SDS1000X-E is DHCP-assigned and re-leases on power-cycle, so the address
-drifts. Strategy: try the last-known-good IP first (fast path), and only fall
-back to a subnet sweep on SCPI port 5024 -- verified via *IDN? -- if that
-fails. The last-good IP is cached outside the repo (~/.osci_tool), not in
+The bench SDS1104X-E has DHCP disabled and a static IP, so the last-known-good
+IP (fast path) hits on the first probe in normal use. The subnet sweep on SCPI
+port 5024 -- verified via *IDN? -- is recovery for when that IP changes
+(scope reconfigured or DHCP re-enabled) while it stays on the same /24. The last-good IP is cached outside the repo (~/.osci_tool), not in
 version control, since it's a property of this bench, not the codebase.
 """
 
