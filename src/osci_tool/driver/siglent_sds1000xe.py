@@ -1,15 +1,19 @@
+from typing import Self
+
 from osci_tool.transport.base import Transport
 
 _WELCOME_PREFIX = "Welcome to the SCPI instrument"
 _PROMPT_PREFIX = ">>"
 _VALID_COUPLING = frozenset({"A1M", "A50", "D1M", "D50", "GND"})
 _VALID_TRIGGER_MODE = frozenset({"AUTO", "NORM", "SINGLE", "STOP"})
+# fmt: off
 _VALID_TIME_DIV = frozenset({
     "1NS", "2NS", "5NS", "10NS", "20NS", "50NS", "100NS", "200NS", "500NS",
     "1US", "2US", "5US", "10US", "20US", "50US", "100US", "200US", "500US",
     "1MS", "2MS", "5MS", "10MS", "20MS", "50MS", "100MS", "200MS", "500MS",
     "1S", "2S", "5S", "10S", "20S", "50S", "100S",
 })
+# fmt: on
 
 
 class SiglentSDS1000XE:
@@ -172,11 +176,10 @@ class SiglentSDS1000XE:
         if not lines:
             return ""
         last = lines[-1]
-        if last.startswith(_PROMPT_PREFIX):
-            last = last[len(_PROMPT_PREFIX):]
+        last = last.removeprefix(_PROMPT_PREFIX)
         return last.lstrip("\x00").strip()
 
-    def __enter__(self) -> "SiglentSDS1000XE":
+    def __enter__(self) -> Self:
         self.connect()
         return self
 

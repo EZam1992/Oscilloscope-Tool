@@ -47,7 +47,9 @@ def resolve_scope_host(*, force_rescan: bool = False) -> str:
 
 def _probe(host: str) -> bool:
     try:
-        with socket.create_connection((host, _SCPI_PORT), timeout=_PROBE_TIMEOUT) as sock:
+        with socket.create_connection(
+            (host, _SCPI_PORT), timeout=_PROBE_TIMEOUT
+        ) as sock:
             sock.sendall(_IDN_QUERY)
             response = sock.recv(256).decode("ascii", errors="ignore")
             return _IDN_MATCH in response.upper()

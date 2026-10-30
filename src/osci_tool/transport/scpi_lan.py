@@ -1,4 +1,5 @@
 import socket
+from typing import Self
 
 
 class ScpiLanTransport:
@@ -75,7 +76,7 @@ class ScpiLanTransport:
             buffer.extend(chunk)
         return buffer.decode("ascii").strip()
 
-    def __enter__(self) -> "ScpiLanTransport":
+    def __enter__(self) -> Self:
         self.connect()
         return self
 
