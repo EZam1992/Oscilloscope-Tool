@@ -1,4 +1,4 @@
-from osci_tool.transport.scpi_lan import ScpiLanTransport
+from osci_tool.transport.base import Transport
 
 _WELCOME_PREFIX = "Welcome to the SCPI instrument"
 _PROMPT_PREFIX = ">>"
@@ -13,7 +13,7 @@ _VALID_TIME_DIV = frozenset({
 
 
 class SiglentSDS1000XE:
-    def __init__(self, transport: ScpiLanTransport) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._transport = transport
 
     def connect(self) -> None:
