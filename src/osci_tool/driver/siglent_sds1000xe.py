@@ -166,8 +166,11 @@ class SiglentSDS1000XE:
         self._query("*OPC?")
 
     def _query(self, command: str) -> str:
-        raw = self._transport.query(command)
-        return self._strip_framing(raw)
+        while True:
+            raw = self._transport.query(command)
+            stripped = self._strip_framing(raw)
+            if stripped:
+                return stripped
 
     @staticmethod
     def _strip_framing(raw: str) -> str:
