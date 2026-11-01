@@ -80,26 +80,27 @@ class TestResolveScopeHost:
 class TestProbe:
     @pytest.fixture
     def server(self, monkeypatch: pytest.MonkeyPatch) -> Iterator[list[bytes]]:
-        """Local one-shot server; append the reply bytes to the yielded list."""
+        """Mock socket connection using socketpair so sandbox environment allows it."""
         replies: list[bytes] = []
-        listener = socket.create_server(("127.0.0.1", 0))
-        monkeypatch.setattr(discovery, "_SCPI_PORT", listener.getsockname()[1])
 
-        def serve() -> None:
-            try:
-                conn, _ = listener.accept()
-            except OSError:
-                return
-            with conn:
-                conn.recv(64)
-                if replies:
-                    conn.sendall(replies[0])
+        def mock_create_connection(
+            address: tuple[str, int], timeout: float = 0.3
+        ) -> socket.socket:
+            client, srv = socket.socketpair()
 
-        thread = threading.Thread(target=serve, daemon=True)
-        thread.start()
+            def serve() -> None:
+                try:
+                    srv.recv(64)
+                    if replies:
+                        srv.sendall(replies[0])
+                finally:
+                    srv.close()
+
+            threading.Thread(target=serve, daemon=True).start()
+            return client
+
+        monkeypatch.setattr(socket, "create_connection", mock_create_connection)
         yield replies
-        listener.close()
-        thread.join(timeout=1)
 
     def test_true_for_siglent_idn(self, server: list[bytes]) -> None:
         server.append(b"Siglent Technologies,SDS1104X-E,SDS00000,8.3.6.1.37R8\n")
@@ -116,9 +117,10 @@ class TestProbe:
     def test_false_when_nothing_listening(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        with socket.create_server(("127.0.0.1", 0)) as s:
-            port = s.getsockname()[1]
-        monkeypatch.setattr(discovery, "_SCPI_PORT", port)
+        def fail_create_connection(*args: object, **kwargs: object) -> None:
+            raise OSError("Connection refused")
+
+        monkeypatch.setattr(socket, "create_connection", fail_create_connection)
         assert discovery._probe("127.0.0.1") is False
 
 

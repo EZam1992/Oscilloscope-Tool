@@ -8,16 +8,19 @@ class ScpiLanTransport:
         self._port = port
         self._timeout = timeout
         self._sock: socket.socket | None = None
+        self._buffer = bytearray()
 
     def connect(self) -> None:
         self._sock = socket.create_connection(
             (self._host, self._port), timeout=self._timeout
         )
+        self._buffer.clear()
 
     def close(self) -> None:
         if self._sock is not None:
             self._sock.close()
             self._sock = None
+        self._buffer.clear()
 
     def write(self, command: str) -> None:
         self._send(command)
@@ -52,13 +55,14 @@ class ScpiLanTransport:
     def _recv_exact(self, count: int) -> bytes:
         if self._sock is None:
             raise RuntimeError("Not connected")
-        data = bytearray()
-        while len(data) < count:
-            chunk = self._sock.recv(count - len(data))
+        while len(self._buffer) < count:
+            chunk = self._sock.recv(max(4096, count - len(self._buffer)))
             if not chunk:
                 raise ConnectionError("Socket closed by remote host")
-            data.extend(chunk)
-        return bytes(data)
+            self._buffer.extend(chunk)
+        data = bytes(self._buffer[:count])
+        del self._buffer[:count]
+        return data
 
     def _send(self, command: str) -> None:
         if self._sock is None:
@@ -68,13 +72,15 @@ class ScpiLanTransport:
     def _receive(self) -> str:
         if self._sock is None:
             raise RuntimeError("Not connected")
-        buffer = bytearray()
-        while not buffer.endswith(b"\n"):
+        while b"\n" not in self._buffer:
             chunk = self._sock.recv(4096)
             if not chunk:
                 raise ConnectionError("Socket closed by remote host")
-            buffer.extend(chunk)
-        return buffer.decode("ascii").strip()
+            self._buffer.extend(chunk)
+        newline_idx = self._buffer.index(b"\n")
+        line = bytes(self._buffer[:newline_idx])
+        del self._buffer[: newline_idx + 1]
+        return line.decode("ascii").strip()
 
     def __enter__(self) -> Self:
         self.connect()

@@ -116,3 +116,26 @@ def test_close_releases_socket_and_is_idempotent(
     assert fake.closed
     with pytest.raises(RuntimeError):
         transport.write("*RST")
+
+
+def test_consecutive_queries_preserve_unconsumed_bytes_in_buffer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A single TCP chunk delivers response 1 AND response 2 together
+    transport, _ = _connected(monkeypatch, [b"FIRST_REPLY\nSECOND_REPLY\n"])
+    assert transport.query("CMD1?") == "FIRST_REPLY"
+    assert transport.query("CMD2?") == "SECOND_REPLY"
+
+
+def test_mixed_text_and_binary_block_preserves_buffer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Pre-banner or text preceding a binary block or vice-versa
+    payload = b"12345"
+    block = b"#15" + payload + b"\n\n"
+    transport, _ = _connected(monkeypatch, [b"PREFIX\n" + block + b"AFTER\n"])
+    assert transport.query("CMD1?") == "PREFIX"
+    # Query binary block reads up to terminator
+    bin_res = transport.query_binary_block("WF?")
+    assert payload in bin_res
+    assert transport.query("CMD2?") == "AFTER"
