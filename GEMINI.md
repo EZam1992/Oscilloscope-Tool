@@ -42,17 +42,14 @@ data/                            gitignored capture output
 ## Status
 
 Done and verified live against the scope:
-- Transport, including IEEE 488.2 definite-length binary blocks (`#<n><len><payload>`).
+- Transport, including IEEE 488.2 definite-length binary blocks (`#<n><len><payload>`) and buffer preservation across chunk boundaries.
 - Driver: `identify`, channel on/off, vertical scale/offset/coupling, trigger level/mode/source (edge only), timebase, sample rate, raw and scaled waveform pull.
 - Discovery with IP cache and subnet-sweep fallback.
 - Sequencer steps: `ChannelConfigRoundTrip`, `WaveformAmplitudeInRange`, `TriggerFiresWithinTimeout`.
-- Data logger: CSV per capture.
-
-Not started:
-- App Controller.
-- GUI (planned: PyQt/PySide + pyqtgraph).
-- HDF5 export and run history.
-- Automated tests.
+- Data logger: CSV capture and compressed multi-channel HDF5 container export.
+- App Controller: owns scope connection lifecycle, manages thread-safe state snapshot, background worker polling thread, and async sequence dispatch.
+- GUI: PySide6 + pyqtgraph desktop application with 4-channel color-coded waveform plot, live channel/trigger/timebase adjustments, export actions, and test sequencer runner.
+- Automated tests: 94 unit tests using `SimulatedTransport` offline scope backend running in <1s. Fully linted and formatted via `ruff`.
 
 ## SDS1104X-E protocol gotchas (already handled; don't "fix" them away)
 

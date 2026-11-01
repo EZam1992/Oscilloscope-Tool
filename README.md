@@ -42,9 +42,10 @@ graph TD
 ## Status
 
 - [x] Repo scaffolded (`src/` layout, six modules matching the architecture above)
-- [x] SCPI/LAN Transport — implemented, verified live against the scope (`*IDN?` round trip working)
+- [x] SCPI/LAN Transport — implemented, verified live against the scope (`*IDN?` round trip working, unconsumed buffer handling)
 - [x] Scope Driver — `identify()`, channel enable/scale/offset/coupling, trigger (level/mode/edge source), timebase, waveform pull, all verified live
 - [x] Test Sequencer — channel-config round-trip, waveform-amplitude-range, and trigger-fires-within-timeout step types, verified live
-- [x] Data Logger — `save_waveform()` writes captures to gitignored `data/` (CSV/HDF5 export and run history still open)
-- [ ] App Controller
-- [ ] GUI Layer
+- [x] Data Logger — CSV and multi-channel compressed HDF5 export
+- [x] App Controller — thread-safe scope snapshot, background worker polling loop, async command execution, sequence dispatch
+- [x] GUI Layer — PySide6 desktop GUI with pyqtgraph multi-channel live waveform display, full controls, and sequencer runner
+- [x] Automated Tests — 94 unit tests covering transport, driver, sequencer, discovery, logger, controller, and GUI (with SimulatedTransport offline scope)
