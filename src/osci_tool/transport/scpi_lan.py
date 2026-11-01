@@ -15,6 +15,32 @@ class ScpiLanTransport:
             (self._host, self._port), timeout=self._timeout
         )
         self._buffer.clear()
+        self._drain_banner()
+
+    def _drain_banner(self) -> None:
+        """Drain unsolicited welcome banner sent immediately by Siglent scope on TCP connect."""
+        if self._sock is None:
+            return
+        get_timeout_fn = getattr(self._sock, "gettimeout", None)
+        set_timeout_fn = getattr(self._sock, "settimeout", None)
+        if not get_timeout_fn or not set_timeout_fn:
+            return  # Not a real socket (e.g. test FakeSocket)
+
+        orig_timeout = get_timeout_fn()
+        set_timeout_fn(0.3)
+        try:
+            while True:
+                chunk = self._sock.recv(4096)
+                if not chunk:
+                    break
+                # The banner terminates with ">>" or "\r\n>>"
+                if b">>" in chunk:
+                    break
+        except (TimeoutError, OSError):
+            pass
+        finally:
+            if orig_timeout is not None:
+                set_timeout_fn(orig_timeout)
 
     def close(self) -> None:
         if self._sock is not None:
