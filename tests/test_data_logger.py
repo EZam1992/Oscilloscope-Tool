@@ -37,3 +37,25 @@ def test_creates_missing_data_dir(data_dir: Path) -> None:
 def test_empty_capture_writes_header_only(data_dir: Path) -> None:
     path = data_logger.save_waveform([], channel=1)
     assert path.read_text().splitlines() == ["time_s,voltage_v"]
+
+
+def test_save_waveform_hdf5(data_dir: Path) -> None:
+    import h5py
+    import numpy as np
+
+    ch1_pts = [(0.0, 1.0), (0.001, 1.5)]
+    ch2_pts = [(0.0, -0.5), (0.001, -0.2)]
+    meta = {"sample_rate": "1GSa/s", "trigger": "C1"}
+
+    path = data_logger.save_waveform_hdf5(
+        {1: ch1_pts, 2: ch2_pts}, metadata=meta, output_dir=data_dir
+    )
+
+    assert path.exists()
+    assert path.suffix == ".h5"
+
+    with h5py.File(path, "r") as f:
+        assert f["metadata"].attrs["sample_rate"] == "1GSa/s"
+        assert f["metadata"].attrs["trigger"] == "C1"
+        assert np.allclose(f["channels"]["C1"][:], np.array(ch1_pts))
+        assert np.allclose(f["channels"]["C2"][:], np.array(ch2_pts))
